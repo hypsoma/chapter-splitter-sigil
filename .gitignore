@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+*.md
+!README.md
+.uv-cache/
+
+
+.pytest_cache/
+
+.agents/
+ChapterSplitterSigil.zip

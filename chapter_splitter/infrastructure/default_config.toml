@@ -1,0 +1,50 @@
+output_dir = "output"
+supported_ui_languages = ["zh", "en"]
+enabled_builtin_preset_keys = [
+  "volume_title",
+  "chapter_title",
+  "section_title",
+  "episode_title",
+  "volume_alt_title",
+  "preface_afterword_title",
+  "chapter_en_title",
+]
+
+[[rules]]
+name_key = "chapter_title"
+pattern = '^第[零一二三四五六七八九十百千万两〇0-9０-９]+章.*$'
+level = "h2"
+split = true
+priority = 1
+
+[[rules]]
+name_key = "volume_title"
+pattern = '^第[零一二三四五六七八九十百千万两〇0-9０-９]+卷.*$'
+level = "h1"
+split = true
+priority = 2
+
+[templates]
+default = """<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>[TITLE]</title>
+</head>
+<body>
+  [MAIN]
+</body>
+</html>"""
+
+[name_rules]
+h1 = "Vol{h1_no3}_Chapter000"
+h2 = "Vol{h1_no3}_Chapter{h2_no3}"
+h3 = "{h2}_{$$$}_{title}"
+
+[ui]
+max_regex = 15
+auto_analyze_max_rules_per_level = 2
+long_title_threshold = 30
+remove_empty_lines = false
+strip_paragraph_indent = false
+language = "auto"

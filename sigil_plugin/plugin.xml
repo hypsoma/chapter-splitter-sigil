@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin>
+  <name>ChapterSplitterSigil</name>
+  <type>edit</type>
+  <author>hypsoma</author>
+  <description>https://github.com/hypsoma/chapter-splitter-sigil</description>
+  <engine>python3.4</engine>
+  <version>1.0.0</version>
+  <autostart>true</autostart>
+  <autoclose>true</autoclose>
+  <oslist>osx,unx,win</oslist>
+</plugin>
