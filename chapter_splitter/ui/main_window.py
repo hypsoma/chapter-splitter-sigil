@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from chapter_splitter import __version__
@@ -17,6 +19,10 @@ from chapter_splitter.ui.widgets import RegexRow
 
 
 class MainWindow(QtWidgets.QMainWindow):
+    _DEFAULT_WIDTH = 1200
+    _DEFAULT_HEIGHT = 560
+    _MIN_RESTORED_WIDTH = 720
+    _MIN_RESTORED_HEIGHT = 480
     _PROJECT_GITHUB_URL = "https://github.com/hypsoma/chapter-splitter-sigil"
     _PROJECT_AUTHOR = "hypsoma"
     _PROJECT_EMAIL = "N/A"
@@ -35,9 +41,10 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         register_icons_resource()
         self.setWindowTitle(t("分章助手"))
-        self.resize(1380, 900)
+        self.resize(self._DEFAULT_WIDTH, self._DEFAULT_HEIGHT)
         self.setAcceptDrops(True)
         self._sigil_mode = sigil_mode
+        self._restore_maximized = False
 
         self._regex_rows: list[RegexRow] = []
         self._default_template_text = ""
@@ -54,11 +61,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.info_btn.clicked.connect(self.show_about_dialog)
         self._apply_icons()
 
-    def choose_input_file(self) -> str:
+    def choose_input_file(self, initial_dir: str | Path | None = None) -> str:
         dialog = QtWidgets.QFileDialog(
             self,
             t("选择文本"),
-            "",
+            self._input_dialog_directory(initial_dir),
             t("文本文件 (*.txt);;所有文件 (*)"),
         )
         dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
@@ -67,6 +74,21 @@ class MainWindow(QtWidgets.QMainWindow):
             return ""
         files = dialog.selectedFiles()
         return files[0] if files else ""
+
+    def _input_dialog_directory(self, initial_dir: str | Path | None = None) -> str:
+        for candidate in (
+            initial_dir,
+            self.input_path_edit.text().strip(),
+            Path.home(),
+        ):
+            if not candidate:
+                continue
+            path = Path(candidate).expanduser()
+            if path.is_file():
+                return str(path.parent)
+            if path.is_dir():
+                return str(path)
+        return ""
 
     def choose_output_dir(self) -> str:
         dialog = QtWidgets.QFileDialog(self, t("选择输出"))
@@ -101,6 +123,45 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def get_default_template(self) -> str:
         return self._default_template_text
+
+    def restore_window_state(self, state: object) -> None:
+        if not isinstance(state, dict):
+            return
+
+        width = self._config_int(state.get("width"))
+        height = self._config_int(state.get("height"))
+        if (
+            width is None
+            or height is None
+            or width < self._MIN_RESTORED_WIDTH
+            or height < self._MIN_RESTORED_HEIGHT
+        ):
+            return
+
+        x = self._config_int(state.get("x"))
+        y = self._config_int(state.get("y"))
+        if x is not None and y is not None:
+            self.setGeometry(x, y, width, height)
+        else:
+            self.resize(width, height)
+        self._restore_maximized = bool(state.get("maximized", False))
+
+    def current_window_state(self) -> dict[str, int | bool]:
+        geometry = self.normalGeometry() if self.isMaximized() else self.geometry()
+        return {
+            "x": geometry.x(),
+            "y": geometry.y(),
+            "width": geometry.width(),
+            "height": geometry.height(),
+            "maximized": self.isMaximized(),
+        }
+
+    @staticmethod
+    def _config_int(value: object) -> int | None:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     def open_template_editor(self) -> None:
         dialog = TemplateEditorDialog(self._default_template_text, self)
@@ -194,6 +255,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
         self.apply_preview_column_layout()
+
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        super().showEvent(event)
+        if self._restore_maximized:
+            self._restore_maximized = False
+            QtCore.QTimer.singleShot(0, self.showMaximized)
 
     def changeEvent(self, event: QtCore.QEvent) -> None:
         super().changeEvent(event)

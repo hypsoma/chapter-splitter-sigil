@@ -34,12 +34,12 @@ class NameGenerator:
             "000": f"{self._absolute_counter:03d}",
             "$$$": f"{self._relative_by_level[segment.level]:03d}",
             "title": title_slug,
-            "h1_no": str(self._relative_by_level.get("h1", 0)),
-            "h2_no": str(self._relative_by_level.get("h2", 0)),
-            "h1_no3": f"{self._relative_by_level.get('h1', 0):03d}",
-            "h2_no3": f"{self._relative_by_level.get('h2', 0):03d}",
         }
         for level in LEVEL_ORDER:
+            counter = self._relative_by_level.get(level, 0)
+            mapping[f"{level}_no"] = str(counter)
+            mapping[f"{level}_no2"] = f"{counter:02d}"
+            mapping[f"{level}_no3"] = f"{counter:03d}"
             mapping[level] = self._last_slug_by_level.get(level, level)
 
         pattern = self._rule_by_level.get(segment.level, DEFAULT_STEM_PATTERN)

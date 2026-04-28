@@ -56,6 +56,18 @@ def _load_default_config() -> dict[str, Any]:
     return data
 
 
+def _toml_value(value: Any) -> str:
+    if isinstance(value, dict):
+        items = (
+            f"{json.dumps(str(key), ensure_ascii=False)} = {_toml_value(item)}"
+            for key, item in value.items()
+        )
+        return "{ " + ", ".join(items) + " }"
+    if isinstance(value, list):
+        return "[" + ", ".join(_toml_value(item) for item in value) + "]"
+    return json.dumps(value, ensure_ascii=False)
+
+
 DEFAULT_CONFIG = _load_default_config()
 DEFAULT_RULES = copy.deepcopy(DEFAULT_CONFIG.get("rules", []))
 DEFAULT_ENABLED_BUILTIN_PRESET_KEYS = copy.deepcopy(
@@ -78,6 +90,7 @@ DEFAULT_STRIP_PARAGRAPH_INDENT = bool(
     DEFAULT_CONFIG.get("ui", {}).get("strip_paragraph_indent", False)
 )
 DEFAULT_UI_LANGUAGE = str(DEFAULT_CONFIG.get("ui", {}).get("language", "auto"))
+DEFAULT_LAST_INPUT_DIR = str(DEFAULT_CONFIG.get("ui", {}).get("last_input_dir", ""))
 SUPPORTED_UI_LANGUAGES = frozenset(
     str(item) for item in DEFAULT_CONFIG.get("supported_ui_languages", ["zh", "en"])
 )
@@ -88,6 +101,8 @@ DEFAULT_UI = {
     "remove_empty_lines": DEFAULT_REMOVE_EMPTY_LINES,
     "strip_paragraph_indent": DEFAULT_STRIP_PARAGRAPH_INDENT,
     "language": DEFAULT_UI_LANGUAGE,
+    "last_input_dir": DEFAULT_LAST_INPUT_DIR,
+    "window_state": {},
 }
 PRESET_KEY_BY_PATTERN_LEVEL = build_preset_key_by_pattern_level()
 LOCALIZED_DEFAULT_NAMES = {
@@ -155,19 +170,19 @@ class ConfigurationManager:
         for rule in data.get("rules", []):
             output.append("[[rules]]")
             for key, value in rule.items():
-                output.append(f"{key} = {json.dumps(value, ensure_ascii=False)}")
+                output.append(f"{key} = {_toml_value(value)}")
             output.append("")
 
         for preset in data.get("custom_presets", []):
             output.append("[[custom_presets]]")
             for key, value in preset.items():
-                output.append(f"{key} = {json.dumps(value, ensure_ascii=False)}")
+                output.append(f"{key} = {_toml_value(value)}")
             output.append("")
 
         for table in ("templates", "name_rules", "ui"):
             output.append(f"[{table}]")
             for key, value in data.get(table, {}).items():
-                output.append(f"{key} = {json.dumps(value, ensure_ascii=False)}")
+                output.append(f"{key} = {_toml_value(value)}")
             output.append("")
 
         path.write_text("\n".join(output).strip() + "\n", encoding="utf-8")

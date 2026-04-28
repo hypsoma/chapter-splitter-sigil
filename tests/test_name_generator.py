@@ -32,3 +32,17 @@ def test_fixed_width_level_counters() -> None:
 
     assert vol == "Vol001.xhtml"
     assert chapter == "Vol001_Chapter001.xhtml"
+
+
+def test_two_digit_level_counters() -> None:
+    rules = {
+        "h1": "Juan-{h1_no2}",
+        "h2": "Juan{h1_no2}{h2_no2}",
+    }
+    generator = NameGenerator(rules)
+
+    volume = generator.next(ChapterSegment("第一卷", "h1", ["a"], 1))
+    chapter = generator.next(ChapterSegment("第一章", "h2", ["a"], 2))
+
+    assert volume == "Juan-01.xhtml"
+    assert chapter == "Juan0101.xhtml"

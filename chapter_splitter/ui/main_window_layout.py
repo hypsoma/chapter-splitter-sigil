@@ -122,6 +122,7 @@ def build_main_window_layout(window: MainWindow) -> None:
 
     split_panel = QtWidgets.QSplitter()
     split_panel.setChildrenCollapsible(False)
+    split_panel.setHandleWidth(4)
     page_layout.addWidget(split_panel, 1)
 
     left_widget = QtWidgets.QWidget()
@@ -129,6 +130,7 @@ def build_main_window_layout(window: MainWindow) -> None:
     left_layout.setContentsMargins(0, 0, 0, 0)
     left_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
     left_splitter.setChildrenCollapsible(False)
+    left_splitter.setHandleWidth(1)
     left_layout.addWidget(left_splitter, 1)
 
     window.regex_group = QtWidgets.QGroupBox(t("切分规则"))
@@ -173,6 +175,8 @@ def build_main_window_layout(window: MainWindow) -> None:
         "  {title}  — 当前标题（特殊字符转下划线）\n"
         "  {h1_no}  — 当前 h1 序号\n"
         "  {h2_no}  — 当前 h2 序号\n"
+        "  {h1_no2} — 当前 h1 序号（2位补零）\n"
+        "  {h2_no2} — 当前 h2 序号（2位补零）\n"
         "  {h1_no3} — 当前 h1 序号（3位补零）\n"
         "  {h2_no3} — 当前 h2 序号（3位补零）\n"
         "  {h1}     — 最近 h1 标题文本\n"
@@ -197,7 +201,7 @@ def build_main_window_layout(window: MainWindow) -> None:
     config_layout.addRow(window.label_h3, window.h3_name_rule_edit)
     config_layout.addRow(window.label_threshold, window.long_title_threshold_spin)
     left_splitter.addWidget(window.config_group)
-    left_splitter.setSizes([660, 200])
+    left_splitter.setSizes([360, 160])
 
     right_widget = QtWidgets.QWidget()
     right_layout = QtWidgets.QVBoxLayout(right_widget)
@@ -274,7 +278,9 @@ def build_main_window_layout(window: MainWindow) -> None:
 
     split_panel.addWidget(left_widget)
     split_panel.addWidget(right_widget)
-    split_panel.setSizes([700, 680])
+    split_panel.setStretchFactor(0, 1)
+    split_panel.setStretchFactor(1, 1)
+    split_panel.setSizes([600, 600])
     split_panel.splitterMoved.connect(
         lambda _pos, _index: window.apply_preview_column_layout()
     )

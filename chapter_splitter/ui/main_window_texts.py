@@ -55,6 +55,8 @@ def retranslate_main_window(window: MainWindow) -> None:
         "  {title}  — 当前标题（特殊字符转下划线）\n"
         "  {h1_no}  — 当前 h1 序号\n"
         "  {h2_no}  — 当前 h2 序号\n"
+        "  {h1_no2} — 当前 h1 序号（2位补零）\n"
+        "  {h2_no2} — 当前 h2 序号（2位补零）\n"
         "  {h1_no3} — 当前 h1 序号（3位补零）\n"
         "  {h2_no3} — 当前 h2 序号（3位补零）\n"
         "  {h1}     — 最近 h1 标题文本\n"

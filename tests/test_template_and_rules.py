@@ -3,6 +3,7 @@ from chapter_splitter.domain.document_loader import DocumentLoader
 from chapter_splitter.domain.paragraph_renderer import ParagraphRenderer
 from chapter_splitter.domain.rule_analyzer import RuleAnalyzer
 from chapter_splitter.domain.template_injector import TemplateInjector
+from chapter_splitter.infrastructure.configuration import ConfigurationManager
 
 
 def test_template_injector_replaces_title_and_main() -> None:
@@ -68,3 +69,22 @@ def test_document_preprocess_strips_paragraph_indent() -> None:
     raw = "    第一段\n\t第二段\n　　第三段"
     processed = DocumentLoader.preprocess_text(raw, remove_empty_lines=False, strip_indent=True)
     assert processed == "第一段\n第二段\n第三段"
+
+
+def test_configuration_saves_nested_ui_state_as_valid_toml(tmp_path) -> None:
+    path = tmp_path / "config.toml"
+    config = ConfigurationManager.default_config()
+    config["ui"]["window_state"] = {
+        "x": 10,
+        "y": 20,
+        "width": 885,
+        "height": 585,
+        "maximized": False,
+    }
+
+    ConfigurationManager.save(path, config)
+    loaded = ConfigurationManager.load(path)
+
+    assert loaded["ui"]["window_state"]["width"] == 885
+    assert loaded["ui"]["window_state"]["maximized"] is False
+

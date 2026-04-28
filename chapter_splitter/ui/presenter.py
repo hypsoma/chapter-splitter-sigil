@@ -19,6 +19,7 @@ from chapter_splitter.infrastructure.configuration import (
     DEFAULT_AUTO_ANALYZE_MAX_RULES_PER_LEVEL,
     DEFAULT_CUSTOM_PRESETS,
     DEFAULT_ENABLED_BUILTIN_PRESET_KEYS,
+    DEFAULT_LAST_INPUT_DIR,
     DEFAULT_LONG_TITLE_THRESHOLD,
     DEFAULT_MAX_REGEX,
     DEFAULT_NAME_RULES,
@@ -162,6 +163,7 @@ class MainPresenter(QtCore.QObject):
         self._view.input_path_edit.setText("")
         self._view.output_dir_edit.setText(DEFAULT_OUTPUT_DIR)
         self._view.set_language_mode(str(ui_config.get("language", DEFAULT_UI_LANGUAGE)))
+        self._view.restore_window_state(ui_config.get("window_state"))
 
     def _collect_rules(self) -> list[dict[str, object]]:
         rules: list[dict[str, object]] = []
@@ -283,23 +285,32 @@ class MainPresenter(QtCore.QObject):
             or DEFAULT_NAME_RULES["h2"],
             "h3": self._view.h3_name_rule_edit.text().strip() or DEFAULT_NAME_RULES["h3"],
         }
-        self._config["ui"] = {
-            "max_regex": DEFAULT_MAX_REGEX,
-            "auto_analyze_max_rules_per_level": int(
-                self._config.get("ui", {}).get(
-                    "auto_analyze_max_rules_per_level",
-                    DEFAULT_AUTO_ANALYZE_MAX_RULES_PER_LEVEL,
-                )
-            ),
-            "long_title_threshold": int(self._view.long_title_threshold_spin.value()),
-            "remove_empty_lines": bool(self._preprocess_options["remove_empty_lines"]),
-            "strip_paragraph_indent": bool(
-                self._preprocess_options["strip_paragraph_indent"]
-            ),
-            "language": str(
-                self._config.get("ui", {}).get("language", DEFAULT_UI_LANGUAGE)
-            ),
-        }
+        ui_config = dict(self._config.get("ui", {}))
+        ui_config.update(
+            {
+                "max_regex": DEFAULT_MAX_REGEX,
+                "auto_analyze_max_rules_per_level": int(
+                    self._config.get("ui", {}).get(
+                        "auto_analyze_max_rules_per_level",
+                        DEFAULT_AUTO_ANALYZE_MAX_RULES_PER_LEVEL,
+                    )
+                ),
+                "long_title_threshold": int(
+                    self._view.long_title_threshold_spin.value()
+                ),
+                "remove_empty_lines": bool(
+                    self._preprocess_options["remove_empty_lines"]
+                ),
+                "strip_paragraph_indent": bool(
+                    self._preprocess_options["strip_paragraph_indent"]
+                ),
+                "language": str(
+                    self._config.get("ui", {}).get("language", DEFAULT_UI_LANGUAGE)
+                ),
+                "window_state": self._view.current_window_state(),
+            }
+        )
+        self._config["ui"] = ui_config
         self._save_config()
         self._model.set_long_title_threshold(
             int(self._config["ui"]["long_title_threshold"])
@@ -311,14 +322,32 @@ class MainPresenter(QtCore.QObject):
         ConfigurationManager.save(self._config_path, payload)
 
     def _pick_input(self) -> None:
-        chosen = self._view.choose_input_file()
+        chosen = self._view.choose_input_file(self._last_input_dir())
         if chosen:
             self._view.input_path_edit.setText(chosen)
+            self._remember_input_dir(Path(chosen).parent)
             if self._should_use_input_scoped_default_output():
                 self._view.output_dir_edit.setText(
                     str(Path(chosen).parent / DEFAULT_OUTPUT_DIR)
                 )
             self.load_text()
+
+    def _last_input_dir(self) -> str:
+        configured = str(
+            self._config.get("ui", {}).get("last_input_dir", DEFAULT_LAST_INPUT_DIR)
+        ).strip()
+        if configured:
+            return configured
+
+        current_input = self._view.input_path_edit.text().strip()
+        if current_input:
+            return str(Path(current_input).parent)
+        return ""
+
+    def _remember_input_dir(self, directory: Path) -> None:
+        ui_config = self._config.setdefault("ui", {})
+        ui_config["last_input_dir"] = str(directory)
+        self._save_config()
 
     def _pick_output(self) -> None:
         chosen = self._view.choose_output_dir()
@@ -799,6 +828,7 @@ class MainPresenter(QtCore.QObject):
         self._view.set_status(t("txt预处理设置已更新"))
 
     def _on_view_closing(self) -> None:
+        self._sync_view_to_config()
         self._is_shutting_down = True
         for signals in list(self._active_jobs.keys()):
             for signal_name in ("finished", "failed", "progress"):
